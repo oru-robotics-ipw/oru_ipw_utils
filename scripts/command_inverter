@@ -1,0 +1,7 @@
+#!/usr/bin/env python2
+"""Start node that inverts /cmd_vel"""
+
+import oru_ipw_cmd_inverter
+
+if __name__ == '__main__':
+    oru_ipw_cmd_inverter.main()
