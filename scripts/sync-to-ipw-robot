@@ -1,0 +1,10 @@
+#!/bin/bash
+
+echo "Syncing to robot, please stand by (may take a moment)"
+rsync -arvh --delete-after --stats --progress -e ssh \
+	--exclude /devel/ \
+	--exclude /build/ \
+	--exclude .vscode/ \
+	--exclude .idea/ \
+	--exclude '*bags/' \
+	"${LOCAL_PATH:-$HOME/ipw/ws/}" "${ROBOT_NAME:-automower2}:${ROBOT_PATH:-ipw/ws/}"
