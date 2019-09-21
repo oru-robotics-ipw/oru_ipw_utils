@@ -7,4 +7,5 @@ rsync -arvh --delete-after --stats --progress -e ssh \
 	--exclude .vscode/ \
 	--exclude .idea/ \
 	--exclude '*bags/' \
+	"$@" \
 	"${LOCAL_PATH:-$HOME/ipw/ws/}" "${ROBOT_NAME:-automower2}:${ROBOT_PATH:-ipw/ws/}"
