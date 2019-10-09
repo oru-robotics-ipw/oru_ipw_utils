@@ -1,14 +1,25 @@
 #!/bin/bash
 
 echo "Syncing to robot, please stand by (may take a moment)"
-rsync -arvh --delete-after --stats --progress -e ssh \
-	--exclude '*bags/' \
-	--exclude .catkin_tools/ \
-	--exclude .gdb_history \
-	--exclude .idea/ \
-	--exclude .vscode/ \
-	--exclude /build/ \
-	--exclude /devel/ \
-	--exclude /logs/ \
-	"$@" \
-	"${LOCAL_PATH:-$HOME/ipw/ws/}" "${ROBOT_NAME:-automower2}:${ROBOT_PATH:-ipw/ws/}"
+
+EXTRA_FLAGS=( "$@" )
+
+# Sync to specific computer
+# $1 hostname
+sync_to_host() {
+	rsync -arvh --delete-after --stats --progress -e ssh \
+		--exclude '*bags/' \
+		--exclude .catkin_tools/ \
+		--exclude .gdb_history \
+		--exclude .idea/ \
+		--exclude .vscode/ \
+		--exclude /build/ \
+		--exclude /devel/ \
+		--exclude /logs/ \
+		"${EXTRA_FLAGS[@]}" \
+		"${LOCAL_PATH:-$HOME/ipw/ws/}" "${1}:${ROBOT_PATH:-ipw/ws/}"
+}
+
+sync_to_host automower1 &
+sync_to_host automower2 &
+wait
