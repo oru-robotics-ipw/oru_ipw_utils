@@ -20,6 +20,5 @@ sync_to_host() {
 		"${LOCAL_PATH:-$HOME/ipw/ws/}" "${1}:${ROBOT_PATH:-ipw/ws/}"
 }
 
-sync_to_host automower1 &
 sync_to_host automower2 &
 wait
