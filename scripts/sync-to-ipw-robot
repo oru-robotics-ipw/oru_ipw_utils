@@ -16,6 +16,7 @@ sync_to_host() {
 		--exclude /build/ \
 		--exclude /devel/ \
 		--exclude /logs/ \
+		--exclude dist/maps/ \
 		"${EXTRA_FLAGS[@]}" \
 		"${LOCAL_PATH:-$HOME/ipw/ws/}" "${1}:${ROBOT_PATH:-ipw/ws/}"
 }
