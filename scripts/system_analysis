@@ -1,0 +1,7 @@
+#!/usr/bin/env python2
+"""Wrapper entry point"""
+
+import oru_ipw_system_analysis
+
+if __name__ == '__main__':
+    oru_ipw_system_analysis.main()

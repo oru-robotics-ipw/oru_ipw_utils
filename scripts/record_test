@@ -5,6 +5,7 @@
 # Newline separated list of patterns to exclude from recording. These will be
 # joined with |
 EXCLUDE_REGEXES="""
+*./bond
 /mcl/particles
 /sensors/camera/depth/image
 /sensors/camera/depth/image/.*
