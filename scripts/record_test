@@ -1,0 +1,36 @@
+#!/bin/bash
+# Script to record data for a test. Everything is recorded except heavy topics
+# with duplicate information.
+
+# Newline separated list of patterns to exclude from recording. These will be
+# joined with |
+EXCLUDE_REGEXES="""
+/mcl/particles
+/sensors/camera/depth/image
+/sensors/camera/depth/image/.*
+/sensors/camera/depth/image_raw.*
+/sensors/camera/depth/image_rect/compressed
+/sensors/camera/depth/image_rect/compressedDepth
+/sensors/camera/depth/image_rect/theora
+/sensors/camera/depth/image_rect_raw.*
+/sensors/camera/depth/points
+/sensors/camera/depth_registered/.*
+/sensors/camera/image_raw/compressed
+/sensors/camera/image_raw/compressedDepth
+/sensors/camera/image_raw/theora
+/sensors/camera/ir/image.*
+/sensors/camera/rgb.*
+/sensors/camera/subsampled_points
+/sensors/laser/multi_scan
+/sensors/laser/scan
+/sensors/laser/subsampled_points
+/sensors/laser/velodyne_points
+/tf2_web_republisher/.*
+"""
+
+OUTFILE="$1"
+shift 1
+
+rosbag record --lz4 -a \
+	-x "$(tr $'\n' '|' <<< "${EXCLUDE_REGEXES}" | sed 's/^|*//;s/|*$//')" \
+	-o "$OUTFILE" "$@"
