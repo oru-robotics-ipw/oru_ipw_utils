@@ -174,12 +174,15 @@ class MoveBaseAnalyser(CountLogNodeAnalyser):
                                     'TebLocalPlannerROS: trajectory is not feasible. Resetting planner...'),
                 MatchCounterRegex('TEB: Possible oscillation',
                                   '^TebLocalPlannerROS: possible oscillation'),
+                MatchCounterLiteral('TEB: Oscillation recovery disabled/expired',
+                                    'TebLocalPlannerROS: oscillation recovery disabled/expired.'),
                 MatchCounterLiteral('Recovery: Rotate',
                                     'Rotate recovery behavior started.'),
                 MatchCounterRegex('Recovery: Rotate recovery failure due to collision',
                                   "^Rotate recovery can't rotate in place because there is a potential collision\."),
                 MatchCounterRegex('Recovery: Clearing costmap', '^Clearing costmap to unstuck robot'),
-                MatchCounterRegex('Missed control rate', '^Control loop missed its desired rate of '),
+                MatchCounterRegex('Too slow: Control rate', '^Control loop missed its desired rate of '),
+                MatchCounterRegex('Too slow: Map update rate', '^Map update loop missed its desired rate of '),
                 MatchCounterRegex("Sensors: Laser failed deadline",
                                   '^The /sensors/laser/subsampled_points observation buffer has not been updated'),
                 MatchCounterRegex("Sensors: Camera failed deadline",
@@ -191,6 +194,8 @@ class MoveBaseAnalyser(CountLogNodeAnalyser):
                 MatchCounterLiteral('Successful navigations', 'GOAL Reached!'),
                 MatchCounterLiteral('Failed navigations',
                                     'Aborting because a valid control could not be found. Even after executing all recovery behaviors'),
+                MatchCounterLiteral('Sensors: Missed update blocked navigation',
+                                    "[/move_base]:Sensor data is out of date, we're not going to allow commanding of the base for safety"),
             ])
 
 

@@ -5,7 +5,7 @@
 # Newline separated list of patterns to exclude from recording. These will be
 # joined with |
 EXCLUDE_REGEXES="""
-*./bond
+.*/bond
 /mcl/particles
 /sensors/camera/depth/image
 /sensors/camera/depth/image/.*
@@ -16,9 +16,7 @@ EXCLUDE_REGEXES="""
 /sensors/camera/depth/image_rect_raw.*
 /sensors/camera/depth/points
 /sensors/camera/depth_registered/.*
-/sensors/camera/image_raw/compressed
-/sensors/camera/image_raw/compressedDepth
-/sensors/camera/image_raw/theora
+/sensors/camera/image_raw.*
 /sensors/camera/ir/image.*
 /sensors/camera/rgb.*
 /sensors/camera/subsampled_points
@@ -32,6 +30,6 @@ EXCLUDE_REGEXES="""
 OUTFILE="$1"
 shift 1
 
-rosbag record --lz4 -a \
+rosbag record --lz4 --split --size=1024 -a \
 	-x "$(tr $'\n' '|' <<< "${EXCLUDE_REGEXES}" | sed 's/^|*//;s/|*$//')" \
 	-o "$OUTFILE" "$@"
