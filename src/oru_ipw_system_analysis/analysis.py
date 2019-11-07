@@ -9,13 +9,18 @@ class Analysis(object):
     """Base class of analysis types"""
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, bag_file):
+    def __init__(self, bag_files):
         """Constructor
 
-        :type bag_file: Path
+        :type bag_files: List[Path]
         """
-        self.bag_file_path = bag_file
-        self.bag = rosbag.Bag(str(self.bag_file_path))
+        self.bag_file_paths = bag_files
+
+    @property
+    def _bags(self):
+        """Generator of bag files"""
+        for p in self.bag_file_paths:
+            yield rosbag.Bag(str(p))
 
     @abc.abstractmethod
     def analyse(self):

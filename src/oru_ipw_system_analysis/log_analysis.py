@@ -1,4 +1,9 @@
-"""Analyse /rosout (console log)"""
+"""Analyse /rosout (console log)
+
+One class is defined for each node. These are auto-registered via introspection. on the node name.
+However, if there is a class attribute "regex_node_match", this will be used as a regex instead. This allows matching on
+nodes with anonymous names.
+"""
 
 from __future__ import absolute_import, print_function
 
@@ -134,9 +139,13 @@ class CountLogNodeAnalyser(BaseLogNodeAnalyser):
         """
         super(CountLogNodeAnalyser, self).__init__(name)
         self.matchers = matchers
-        self.matchers.append(MatchCounterLevel('Level: Warning', Log.WARN))
-        self.matchers.append(MatchCounterLevel('Level: Errors', Log.ERROR))
-        self.matchers.append(MatchCounterLevel('Level: Fatal', Log.FATAL))
+        self.matchers.extend([
+            MatchCounterRegex('TF: Lookup failed, extrapolation into the future',
+                              '^TF lookup failed. Reason: Lookup would require extrapolation into the future.'),
+            MatchCounterLevel('Level: Warning', Log.WARN),
+            MatchCounterLevel('Level: Errors', Log.ERROR),
+            MatchCounterLevel('Level: Fatal', Log.FATAL),
+        ])
         self.verbose = verbose
 
     def analyse(self, msg):
@@ -179,7 +188,7 @@ class MoveBaseAnalyser(CountLogNodeAnalyser):
                 MatchCounterLiteral('Recovery: Rotate',
                                     'Rotate recovery behavior started.'),
                 MatchCounterRegex('Recovery: Rotate recovery failure due to collision',
-                                  "^Rotate recovery can't rotate in place because there is a potential collision\."),
+                                  r"^Rotate recovery can't rotate in place because there is a potential collision\."),
                 MatchCounterRegex('Recovery: Clearing costmap', '^Clearing costmap to unstuck robot'),
                 MatchCounterRegex('Too slow: Control rate', '^Control loop missed its desired rate of '),
                 MatchCounterRegex('Too slow: Map update rate', '^Map update loop missed its desired rate of '),
@@ -188,10 +197,11 @@ class MoveBaseAnalyser(CountLogNodeAnalyser):
                 MatchCounterRegex("Sensors: Camera failed deadline",
                                   '^The /sensors/camera/subsampled_points observation buffer has not been updated'),
                 MatchCounterRegex('Pose: Extrapolation into past',
-                                  '^Extrapolation Error looking up robot pose: Lookup would require extrapolation into the past\.'),
+                                  r'^Extrapolation Error looking up robot pose: Lookup would require extrapolation into the past\.'),
                 MatchCounterRegex('Pose: Lookup failure',
                                   '^Could not get robot pose, cancelling reconfiguration'),
                 MatchCounterLiteral('Successful navigations', 'GOAL Reached!'),
+                MatchCounterLiteral('Failed to get a plan', 'Failed to get a plan.'),
                 MatchCounterLiteral('Failed navigations',
                                     'Aborting because a valid control could not be found. Even after executing all recovery behaviors'),
                 MatchCounterLiteral('Sensors: Missed update blocked navigation',
@@ -218,6 +228,8 @@ class ControllerAnalyser(CountLogNodeAnalyser):
             [
                 MatchCounterLiteral('Collision', 'Collision'),
                 MatchCounterLiteral('Collision ended', 'Collision ended'),
+                MatchCounterLiteral('Soft estop activated', 'Estop activated'),
+                MatchCounterLiteral('Soft estop deactivated', 'Estop deactivated'),
             ])
 
 
@@ -229,6 +241,44 @@ class DriverAnalyser(CountLogNodeAnalyser):
             '/hrp/am_driver_safe',
             [
                 MatchCounterLiteral('Collision', 'Collision'),
+                MatchCounterLiteral('Hard stop (set speed 0)', 'wanted_power: 0.000000'),
+            ])
+
+
+class SpencerStaticMapFilterAnalyser(CountLogNodeAnalyser):
+    """Analyse log messages from SPENCER: Static map filter"""
+
+    def __init__(self):
+        super(SpencerStaticMapFilterAnalyser, self).__init__(
+            '/spencer/perception_internal/people_detection/filter_detections_by_static_map',
+            [
+            ])
+
+
+class VelodyneNodeletManagerAnalyser(CountLogNodeAnalyser):
+    """Analyse log messages from the Velodyne nodelet manager"""
+
+    def __init__(self):
+        super(VelodyneNodeletManagerAnalyser, self).__init__(
+            '/sensors/laser/velodyne_nodelet_manager',
+            [
+                MatchCounterRegex('Velodyne angle overflow', '^Packet containing angle overflow, first angle:')
+            ])
+
+
+class RecordAnalyser(CountLogNodeAnalyser):
+    """Analyse log messages from rosbag record"""
+
+    regex_node_match = re.compile(r'/record_.*')
+
+    def __init__(self):
+        super(RecordAnalyser, self).__init__(
+            'rosbag record',
+            [
+                MatchCounterRegex('Subscribed topics', '^Subscribing to '),
+                MatchCounterRegex('Bag switching', '^Closing|^Recording to '),
+                MatchCounterLiteral('Record buffer exceeded',
+                                    'rosbag record buffer exceeded.  Dropping oldest queued message.'),
             ])
 
 
@@ -249,22 +299,35 @@ class LogAnalysis(Analysis):
         # Instantiate all concrete analysers in this module
         analysers = inspect.getmembers(sys.modules[__name__], _is_concrete_analyser)
         self._node_switch = {}
+        self._regex_analysers = []
         for _, e in analysers:
             instance = e()
-            self._node_switch[instance.name] = instance
+            if hasattr(e, 'regex_node_match'):
+                self._regex_analysers.append(instance)
+            else:
+                self._node_switch[instance.name] = instance
 
     def analyse(self):
         """Implement the specific analysis step"""
         encountered = set()
-        for topic, msg, t in self.bag.read_messages(topics=('/rosout',)):
-            analyser = self._node_switch.get(msg.name, None)
-            if analyser:
-                analyser.analyse(msg)
-            elif msg.name not in encountered:
-                encountered.add(msg.name)
-                print("No analyser for %s, doing generic analysis" % msg.name)
-                self._node_switch[msg.name] = CountLogNodeAnalyser(msg.name, [], False)
+        for bag in self._bags:
+            for topic, msg, t in bag.read_messages(topics=('/rosout',)):
+                analyser = self._node_switch.get(msg.name, None)
+                if analyser:
+                    analyser.analyse(msg)
+                else:
+                    found_matcher = False
+                    for analyser in self._regex_analysers:
+                        if analyser.regex_node_match.match(msg.name):
+                            analyser.analyse(msg)
+                            found_matcher = True
+                    if not found_matcher and msg.name not in encountered:
+                        encountered.add(msg.name)
+                        print("No analyser for %s, doing generic analysis" % msg.name)
+                        self._node_switch[msg.name] = CountLogNodeAnalyser(msg.name, [], False)
 
         print()
         for analyser in self._node_switch.values():
+            analyser.summarize()
+        for analyser in self._regex_analysers:
             analyser.summarize()

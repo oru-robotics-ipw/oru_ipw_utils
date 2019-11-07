@@ -1,0 +1,36 @@
+#!/bin/bash
+# Filter bag file for analysis script to make it faster to process
+
+IN_BAG="$1"
+OUT_BAG="$2"
+
+TOPIC_LIST=(
+	/cmd_vel
+	/decision_making/hrp/am_driver_safe/events
+	/diagnostics
+	/hrp/battery_status
+	/hrp/cmd_mode
+	/hrp/cmd_power
+	/hrp/cmd_vel
+	/hrp/current_status
+	/hrp/odom
+	/hrp/sensor_status
+	/move_base/cancel
+	/move_base/current_goal
+	/move_base/feedback
+	/move_base/goal
+	/move_base_simple/goal
+	/rosout
+	/spencer/perception/tracked_persons_confirmed_by_HOG_or_upper_body_or_moving
+)
+
+TOPIC_CMD=""
+for e in "${TOPIC_LIST[@]}"; do
+	TOPIC_CMD+=", \"$e\""
+done
+
+TOPIC_CMD="$(sed 's/^, //' <<< "$TOPIC_CMD")"
+
+
+rosbag filter "$IN_BAG" "$OUT_BAG" \
+	'topic in {'"$TOPIC_CMD"'}'

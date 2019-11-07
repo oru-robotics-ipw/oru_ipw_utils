@@ -29,17 +29,18 @@ _ANALYSIS_MAP = {
 def main():
     """Main program entrypoint"""
     parser = argparse.ArgumentParser(description='Analyse speed and acceleration in a bag file')
-    parser.add_argument('bag_file',
-                        type=Path,
-                        help='Path to bag file')
     parser.add_argument('analysis',
                         choices=sorted(_ANALYSIS_MAP.keys()),
                         help="Type of analysis to perform")
+    parser.add_argument('bag_files',
+                        nargs='+',
+                        type=Path,
+                        help='Path to bag file')
     args = parser.parse_args()
 
     analysis = args.analysis  # type: str
 
-    analyser = _ANALYSIS_MAP[analysis](args.bag_file)
+    analyser = _ANALYSIS_MAP[analysis](args.bag_files)
 
     t_before = time.time()
     analyser.analyse()
