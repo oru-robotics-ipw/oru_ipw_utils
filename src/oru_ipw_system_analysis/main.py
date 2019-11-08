@@ -7,22 +7,14 @@ import time
 
 from pathlib2 import Path
 
-from .analysis import Analysis
 from .log_analysis import LogAnalysis
 from .odom import OdomAnalysis
-
-
-class CollisionAnalysis(Analysis):
-    """Collision analysis"""
-
-    def analyse(self):
-        pass
-
+from .spencer import PeopleAnalysis
 
 _ANALYSIS_MAP = {
     'odom': OdomAnalysis,
     'log': LogAnalysis,
-    'collisions': CollisionAnalysis,
+    'people': PeopleAnalysis,
 }
 
 

@@ -18,7 +18,6 @@ class OdomAnalysis(Analysis):
         time_active = rospy.Duration(0)
         for bag in self._bags:
             for topic, msg, t in bag.read_messages(topics=('/hrp/odom',)):
-                assert hasattr(msg, 'header')
                 ts = msg.header.stamp  # type: rospy.Time
                 if not ts_start:
                     ts_start = ts

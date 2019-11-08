@@ -17,6 +17,8 @@ from rosgraph_msgs.msg import Log
 from .counters import MatchCounterLevel, MatchCounterLiteral, MatchCounterRegex
 from ..analysis import Analysis
 
+__all__ = ('LogAnalysis',)
+
 
 class BaseLogNodeAnalyser(object):
     """Base class to analyse messages from a specific node"""
@@ -55,7 +57,7 @@ class CountLogNodeAnalyser(BaseLogNodeAnalyser):
         self.matchers = matchers
         self.matchers.extend([
             MatchCounterRegex('TF: Lookup failed, extrapolation into the future',
-                              '^TF lookup failed. Reason: Lookup would require extrapolation into the future.'),
+                              r'^(?:TF lookup failed. Reason: )?Lookup would require extrapolation into the future\.'),
             MatchCounterLevel('Level: Warning', Log.WARN),
             MatchCounterLevel('Level: Errors', Log.ERROR),
             MatchCounterLevel('Level: Fatal', Log.FATAL),
@@ -73,7 +75,7 @@ class CountLogNodeAnalyser(BaseLogNodeAnalyser):
             if matcher(msg):
                 matched = True
         if not matched and self.verbose:
-            print("%s unmatched: %s" % (self.name, msg.msg))
+            print("%s unmatched: %r (%s:%d)" % (self.name, msg.msg, msg.file, msg.line))
 
     def summarize(self):
         """Print summary information"""
@@ -122,6 +124,12 @@ class MoveBaseAnalyser(CountLogNodeAnalyser):
                                     'Aborting because a valid plan could not be found. Even after executing all recovery behaviors'),
                 MatchCounterLiteral('Sensors: Missed update blocked navigation',
                                     "[/move_base]:Sensor data is out of date, we're not going to allow commanding of the base for safety"),
+                MatchCounterRegex('Startup messages (general)',
+                                  r'^Using plugin "|^Created local_planner |^odom received!$|^Recovery behavior will '),
+                MatchCounterRegex('Startup messages (costmap)',
+                                  r'^Resizing costmap to |^    Subscribed to Topics:|^Requesting the map|^Received a |^Behavior changed to:: |^Persons: |^Social compliance layer using'),
+                MatchCounterRegex('Startup messages (TEB)',
+                                  r'^Parallel planning in distinctive topologies |^No costmap conversion plugin specified|^Footprint model \'')
             ])
 
 
@@ -132,6 +140,9 @@ class MclAnalyser(CountLogNodeAnalyser):
         super(MclAnalyser, self).__init__(
             '/mcl/quickmcl_node',
             [
+                MatchCounterRegex('Slow laser cloud processing', r'^Laser cloud processing took '),
+                MatchCounterRegex('Slow laser transform', r'^Laser transform took '),
+                MatchCounterRegex('Slow publishing', r'^Publishing pose & transform took '),
             ])
 
 
@@ -142,6 +153,8 @@ class ControllerAnalyser(CountLogNodeAnalyser):
         super(ControllerAnalyser, self).__init__(
             '/oru_ipw_controller',
             [
+                MatchCounterLiteral('Loop detection disabled', 'Turned off loop detection'),
+                MatchCounterRegex('Switching to manual mode', r'^Switching to manual mode'),
                 MatchCounterLiteral('Collision', 'Collision'),
                 MatchCounterLiteral('Collision ended', 'Collision ended'),
                 MatchCounterLiteral('Soft estop activated', 'Estop activated'),
@@ -156,6 +169,8 @@ class DriverAnalyser(CountLogNodeAnalyser):
         super(DriverAnalyser, self).__init__(
             '/hrp/am_driver_safe',
             [
+                MatchCounterLiteral('Loop detection disabled', 'AutoMowerSafe: Loop detection off'),
+                MatchCounterLiteral('Switching to manual mode', 'AutoMowerSafe: Manual Mode Requested'),
                 MatchCounterLiteral('Collision', 'Collision'),
                 MatchCounterLiteral('Hard stop (set speed 0)', 'wanted_power: 0.000000'),
             ])
@@ -185,7 +200,7 @@ class VelodyneNodeletManagerAnalyser(CountLogNodeAnalyser):
 class RecordAnalyser(CountLogNodeAnalyser):
     """Analyse log messages from rosbag record"""
 
-    regex_node_match = re.compile(r'/record_.*')
+    regex_node_match = re.compile(r'/record_[0-9]*')
 
     def __init__(self):
         super(RecordAnalyser, self).__init__(
