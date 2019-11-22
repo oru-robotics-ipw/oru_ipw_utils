@@ -12,6 +12,7 @@ import inspect
 import re
 import sys
 
+import colors
 from rosgraph_msgs.msg import Log
 
 from .counters import MatchCounterLevel, MatchCounterLiteral, MatchCounterRegex
@@ -57,10 +58,11 @@ class CountLogNodeAnalyser(BaseLogNodeAnalyser):
         self.matchers = matchers
         self.matchers.extend([
             MatchCounterRegex('TF: Lookup failed, extrapolation into the future',
-                              r'^(?:TF lookup failed. Reason: )?Lookup would require extrapolation into the future\.'),
-            MatchCounterLevel('Level: Warning', Log.WARN),
-            MatchCounterLevel('Level: Errors', Log.ERROR),
-            MatchCounterLevel('Level: Fatal', Log.FATAL),
+                              r'.*(?:Reason: )?Lookup would require extrapolation into the future\.  Requested time '),
+            MatchCounterLevel('Level: Info', Log.INFO),
+            MatchCounterLevel(colors.yellow('Level: Warning'), Log.WARN),
+            MatchCounterLevel(colors.red('Level: Errors'), Log.ERROR),
+            MatchCounterLevel(colors.bold(colors.red('Level: Fatal')), Log.FATAL),
         ])
         self.verbose = verbose
 
@@ -75,7 +77,7 @@ class CountLogNodeAnalyser(BaseLogNodeAnalyser):
             if matcher(msg):
                 matched = True
         if not matched and self.verbose:
-            print("%s unmatched: %r (%s:%d)" % (self.name, msg.msg, msg.file, msg.line))
+            print("%s unmatched: %r (%d, %s:%d)" % (self.name, msg.msg, msg.level, msg.file, msg.line))
 
     def summarize(self):
         """Print summary information"""
@@ -83,7 +85,7 @@ class CountLogNodeAnalyser(BaseLogNodeAnalyser):
         for matcher in self.matchers:
             if matcher.count > 0:
                 if not printed_header:
-                    print(self.name + ':')
+                    print(colors.bold(self.name + ':'))
                     printed_header = True
                 print('  %r' % matcher)
 
