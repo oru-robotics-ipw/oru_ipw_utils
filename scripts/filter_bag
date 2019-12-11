@@ -19,6 +19,8 @@ TOPIC_LIST=(
 	/move_base/current_goal
 	/move_base/feedback
 	/move_base/goal
+	/move_base/result
+	/move_base/status
 	/move_base_simple/goal
 	/rosout
 	/spencer/perception/tracked_persons_confirmed_by_HOG_or_upper_body_or_moving
