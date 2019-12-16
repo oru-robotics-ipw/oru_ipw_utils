@@ -10,11 +10,13 @@ from pathlib2 import Path
 from .log_analysis import LogAnalysis
 from .odom import OdomAnalysis
 from .spencer import PeopleAnalysis
+from .navigation import NavigationAnalysis
 
 _ANALYSIS_MAP = {
     'odom': OdomAnalysis,
     'log': LogAnalysis,
     'people': PeopleAnalysis,
+    'navigation': NavigationAnalysis
 }
 
 
