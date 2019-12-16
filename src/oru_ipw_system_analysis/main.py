@@ -26,6 +26,10 @@ def main():
     parser.add_argument('analysis',
                         choices=sorted(_ANALYSIS_MAP.keys()),
                         help="Type of analysis to perform")
+    parser.add_argument('-q', '--quiet',
+                        default=False,
+                        action='store_true',
+                        help="Prevent time of analysis output")
     parser.add_argument('bag_files',
                         nargs='+',
                         type=Path,
@@ -39,4 +43,5 @@ def main():
     t_before = time.time()
     analyser.analyse()
     t_after = time.time()
-    print("\nTime for analysis: %r s" % (t_after - t_before))
+    if not args.quiet:
+        print("\nTime for analysis: %r s" % (t_after - t_before))
